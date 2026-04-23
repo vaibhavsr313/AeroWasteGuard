@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroWasteGuard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header class="topbar">
+    <button id="toggleSidebar" class="hamburger">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="topbar-title">
+      <span class="title-icon">◈</span>
+      <h1>AeroWasteGuard</h1>
+    </div>
+    <div class="topbar-right">
+      <div class="status-dot" title="System Online"></div>
+      <img src="https://i.pravatar.cc/40" alt="Profile" class="profile-img">
+    </div>
+  </header>
+
+  <!-- Sidebar Overlay -->
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-logo">◈ AWG</span>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">⬡</span>
+        <span class="nav-label">Dashboard</span>
+      </li>
+      <li class="nav-item" data-page="add-mission">
+        <span class="nav-icon">✦</span>
+        <span class="nav-label">Add Mission</span>
+      </li>
+      <li class="nav-item" data-page="missions">
+        <span class="nav-icon">◧</span>
+        <span class="nav-label">Missions</span>
+      </li>
+      <li class="nav-item" data-page="stream">
+        <span class="nav-icon">◉</span>
+        <span class="nav-label">Live Stream</span>
+      </li>
+      <li class="nav-item" data-page="analytics">
+        <span class="nav-icon">◈</span>
+        <span class="nav-label">Analytics</span>
+      </li>
+    </ul>
+    <div class="sidebar-footer">
+      <span class="mono-text">v1.0.0</span>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main id="mainContent">
+
+    <!-- ═══════════════ DASHBOARD PAGE ═══════════════ -->
+    <div id="page-dashboard" class="page active">
+
+      <!-- 6 Stat Cards -->
+      <section id="stats">
+        <div class="card" id="card-mission">
+          <div class="card-label">Current Mission</div>
+          <div class="card-value" id="val-mission">—</div>
+          <div class="card-sub" id="val-mission-date">No missions yet</div>
+        </div>
+        <div class="card" id="card-volume">
+          <div class="card-label">Waste Volume</div>
+          <div class="card-value"><span id="val-volume">—</span><span class="card-unit">m³</span></div>
+          <div class="card-sub">Latest mission</div>
+        </div>
+        <div class="card" id="card-density">
+          <div class="card-label">Waste Density</div>
+          <div class="card-value"><span id="val-density">—</span><span class="card-unit">t/m³</span></div>
+          <div class="card-sub">Latest mission</div>
+        </div>
+        <div class="card" id="card-weight">
+          <div class="card-label">Est. Weight</div>
+          <div class="card-value"><span id="val-weight">—</span><span class="card-unit">tons</span></div>
+          <div class="card-sub">Latest mission</div>
+        </div>
+        <div class="card" id="card-gas">
+          <div class="card-label">Gas Status</div>
+          <div class="card-value status-value" id="val-gas">—</div>
+          <div class="card-sub" id="val-gas-level">—</div>
+        </div>
+        <div class="card" id="card-fire">
+          <div class="card-label">Fire Detected</div>
+          <div class="card-value status-value" id="val-fire">—</div>
+          <div class="card-sub">Latest mission</div>
+        </div>
+      </section>
+
+      <!-- Map/3D Toggle -->
+      <div class="view-toggle">
+        <button class="toggle-btn active" id="btn2D" onclick="showMap()">⬡ 2D Map</button>
+        <button class="toggle-btn" id="btn3D" onclick="show3D()">◈ 3D Model</button>
+      </div>
+
+      <!-- Map -->
+      <section id="map"></section>
+
+      <!-- 3D Viewer -->
+      <section id="viewer3d" style="display:none;"></section>
+
+      <!-- Charts -->
+      <section class="charts">
+        <div class="chart-container">
+          <h3 class="chart-title">Methane Levels Over Time <span class="chart-badge">SENSOR DATA</span></h3>
+          <canvas id="methaneChart"></canvas>
+        </div>
+        <div class="chart-container">
+          <h3 class="chart-title">Waste Volume per Mission <span class="chart-badge">LIVE</span></h3>
+          <canvas id="wasteChart"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══════════════ ADD MISSION PAGE ═══════════════ -->
+    <div id="page-add-mission" class="page">
+      <div class="page-header">
+        <h2 class="page-title">✦ Add New Mission</h2>
+        <p class="page-subtitle">Enter mission data after completing ODM processing</p>
+      </div>
+
+      <div class="form-card">
+        <div class="form-grid">
+
+          <div class="form-group span-2">
+            <label class="form-label">Mission Name</label>
+            <input type="text" id="f-name" class="form-input" placeholder="e.g. Mission 3 — Deonar North">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" id="f-date" class="form-input">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ODM Tile Folder Path</label>
+            <input type="text" id="f-tiles" class="form-input" placeholder="e.g. tiles/mission3/orthophoto">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Waste Volume (m³)</label>
+            <input type="number" id="f-volume" class="form-input" placeholder="e.g. 1200">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Waste Density (t/m³)</label>
+            <input type="number" id="f-density" class="form-input" placeholder="e.g. 0.65" step="0.01">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Estimated Weight (tons)</label>
+            <input type="number" id="f-weight" class="form-input" placeholder="e.g. 780">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Gas Detected?</label>
+            <select id="f-gas" class="form-input form-select">
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Gas Level (if detected)</label>
+            <select id="f-gas-level" class="form-input form-select">
+              <option value="None">None</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Fire Detected?</label>
+            <select id="f-fire" class="form-input form-select">
+              <option value="false">No</option>
+              <option value="true">Yes</option>
+            </select>
+          </div>
+
+          <div class="form-group span-2">
+            <label class="form-label">Notes</label>
+            <textarea id="f-notes" class="form-input form-textarea" placeholder="Any observations from this mission..."></textarea>
+          </div>
+
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-save" onclick="saveMission()">✦ Save Mission</button>
+          <button class="btn-clear" onclick="clearForm()">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ MISSIONS PAGE ═══════════════ -->
+    <div id="page-missions" class="page">
+      <div class="page-header">
+        <h2 class="page-title">◧ All Missions</h2>
+        <p class="page-subtitle">Click a mission to load it on the map. Delete any mission below.</p>
+      </div>
+      <div id="missions-list" class="missions-list">
+        <!-- Populated by JS -->
+      </div>
+      <div id="no-missions" class="no-missions" style="display:none;">
+        <span class="no-missions-icon">◈</span>
+        <p>No missions saved yet.</p>
+        <p>Go to <strong>Add Mission</strong> to create your first one.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════════ LIVE STREAM PAGE ═══════════════ -->
+    <div id="page-stream" class="page">
+      <div class="page-header">
+        <h2 class="page-title">◉ Live Stream</h2>
+        <p class="page-subtitle">Real-time drone feed with fire and gas detection</p>
+      </div>
+
+      <div class="stream-layout">
+        <div class="stream-main">
+          <div class="stream-box" id="streamBox">
+            <div class="stream-placeholder" id="streamPlaceholder">
+              <span class="stream-placeholder-icon">◉</span>
+              <p>Stream not active</p>
+              <p class="mono-text">Press START to connect</p>
+            </div>
+            <img id="streamImg" src="" alt="Live Stream" style="display:none; width:100%; height:100%; object-fit:cover;">
+          </div>
+          <div class="stream-controls">
+            <button class="btn-stream-start" id="btnStreamStart" onclick="startStream()">▶ START STREAM</button>
+            <button class="btn-stream-stop" id="btnStreamStop" onclick="stopStream()" style="display:none;">■ STOP</button>
+            <input type="text" id="streamUrl" class="form-input stream-url-input" placeholder="http://raspberrypi.local:5000/video_feed">
+          </div>
+        </div>
+
+        <div class="stream-sidebar">
+          <!-- NEW -->
+          <div class="detection-card" id="det-fire">
+            <div class="det-icon">🔥</div>
+            <div class="det-label">Fire</div>
+            <div class="det-status" id="det-fire-status">INACTIVE</div>
+          </div>
+          <div class="detection-card" id="det-smoke">
+            <div class="det-icon">💨</div>
+            <div class="det-label">Smoke</div>
+            <div class="det-status" id="det-smoke-status">INACTIVE</div>
+          </div>
+          <div class="detection-card" id="det-gas">
+            <div class="det-icon">☁️</div>
+            <div class="det-label">Gas Sensor</div>
+            <div class="det-status" id="det-gas-status">INACTIVE</div>
+          </div>
+          <div class="detection-card">
+            <div class="det-label mono-text">Pi Status</div>
+            <div class="det-status" id="det-pi-status">OFFLINE</div>
+          </div>
+          <div class="detection-card">
+            <div class="det-label mono-text">Pi IP Address</div>
+            <input type="text" id="piIpInput" class="form-input" placeholder="192.168.x.x:5000" style="margin-top:8px;">
+            <button class="btn-save" style="margin-top:8px; width:100%; padding:8px;" onclick="savePiIp()">Save IP</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ ANALYTICS PAGE ═══════════════ -->
+    <div id="page-analytics" class="page">
+      <div class="page-header">
+        <h2 class="page-title">◈ Analytics</h2>
+        <p class="page-subtitle">Aggregated data across all missions</p>
+      </div>
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <div class="analytics-label">Total Missions</div>
+          <div class="analytics-value" id="an-total">0</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-label">Total Waste Volume</div>
+          <div class="analytics-value" id="an-volume">0 <span style="font-size:1rem">m³</span></div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-label">Total Est. Weight</div>
+          <div class="analytics-value" id="an-weight">0 <span style="font-size:1rem">tons</span></div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-label">Missions w/ Gas</div>
+          <div class="analytics-value" id="an-gas">0</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-label">Missions w/ Fire</div>
+          <div class="analytics-value" id="an-fire">0</div>
+        </div>
+        <div class="analytics-card">
+          <div class="analytics-label">Avg Waste Volume</div>
+          <div class="analytics-value" id="an-avg">0 <span style="font-size:1rem">m³</span></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- Footer -->
+  <footer>
+    <p class="mono-text">© 2025 AeroWasteGuard — Drone Waste Intelligence Platform</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
